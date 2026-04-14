@@ -1,0 +1,1 @@
+__attribute__((weak)) int main() { return 0; }
