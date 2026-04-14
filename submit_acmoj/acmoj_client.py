@@ -64,7 +64,7 @@ class ACMOJClient:
 
         except requests.exceptions.RequestException as e:
             print(f"API Request failed: {e}")
-            if 'response' in locals() and response:
+            if 'response' in locals() and response is not None:
                 print(f"Response text: {response.text}")
             return None
 
@@ -130,17 +130,24 @@ def main():
     client = ACMOJClient(args.token)
 
     if args.command == "submit":
-        try:
-            with open(args.code_file, 'r', encoding='utf-8') as f:
-                code_text = f.read()
-        except FileNotFoundError:
-            print(f"Error: Code file not found at {args.code_file}")
-            exit(1)
-        except Exception as e:
-            print(f"Error: Failed to read code file: {e}")
-            exit(1)
+        if args.language == "git":
+            result = client.submit_git(args.problem_id, args.code_file)
+        else:
+            try:
+                with open(args.code_file, 'r', encoding='utf-8') as f:
+                    code_text = f.read()
+            except FileNotFoundError:
+                print(f"Error: Code file not found at {args.code_file}")
+                exit(1)
+            except Exception as e:
+                print(f"Error: Failed to read code file: {e}")
+                exit(1)
 
-        result = client.submit_code(args.problem_id, args.language, code_text)
+            # Add submit_code method if it doesn't exist, or just use the API directly
+            data = {"language": args.language, "code": code_text}
+            result = client._make_request("POST", f"/problem/{args.problem_id}/submit", data=data)
+            if result and 'id' in result:
+                client._save_submission_id(result['id'])
 
     elif args.command == "status":
         result = client.get_submission_detail(args.submission_id)
